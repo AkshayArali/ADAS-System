@@ -1,5 +1,6 @@
-#include "traffic_lights.hpp"
+// Lucas Butler
 
+#include "traffic_lights.hpp"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -10,11 +11,9 @@
 #include <algorithm>
 #include <cstring>
 #include <cctype>
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
 #include <NvInfer.h>
 #include <NvInferRuntimeCommon.h>
 #include <cuda_runtime_api.h>
@@ -36,7 +35,7 @@ class SimpleLogger : public ILogger {
 static SimpleLogger gLogger;
 
 void TrafficLights::saveEngine(const std::string& filePath, IHostMemory* serializedModel) {
-
+    // Writes the engine to a .engine file
 	std::ofstream outFile(filePath, std::ios::binary);
 	if (!outFile) {
 		std::cerr << "Error: failed to open file for saving the engine." << std::endl;
@@ -50,6 +49,7 @@ void TrafficLights::saveEngine(const std::string& filePath, IHostMemory* seriali
 }
 
 bool TrafficLights::loadEngine(const std::string& filePath){
+    // Loads the .engine file if present
 
 	std::ifstream inFile(filePath, std::ios::binary);
 	if (!inFile) {
@@ -57,27 +57,30 @@ bool TrafficLights::loadEngine(const std::string& filePath){
 		return false;
 	}
 
-	// Deserialize the model
-    	inFile.seekg(0, std::ios::end);
-    	size_t modelSize = inFile.tellg();
-    	inFile.seekg(0, std::ios::beg);
+	// Reads in the model file
+    inFile.seekg(0, std::ios::end);
+    size_t modelSize = inFile.tellg();
+    inFile.seekg(0, std::ios::beg);
 
-    	std::vector<char> modelData(modelSize);
-    	inFile.read(modelData.data(), modelSize);
-    	inFile.close();
+    std::vector<char> modelData(modelSize);
+    inFile.read(modelData.data(), modelSize);
+    inFile.close();
 
+    // Creates inference runtime
 	runtime = createInferRuntime(gLogger);
 	if (!runtime) {
 		std::cerr << "Error: failed to create TensorRT runtime." << std::endl;
 		return false;
 	}
 
+    // Deserializes the engine for usage
 	engine = runtime->deserializeCudaEngine(modelData.data(), modelData.size());
 	if (!engine) {
 		std::cerr << "Error: Failed to deserialize engine" << std::endl;
 		return false;
 	}
 
+    // Creates execution content for inference
 	context = engine->createExecutionContext();
 	if (!context) {
 		std::cerr << "Engine: failed to create execution context" << std::endl;
@@ -88,9 +91,11 @@ bool TrafficLights::loadEngine(const std::string& filePath){
 
 }
 
+// Constructor
 TrafficLights::TrafficLights(const std::string& onnxPath)
     : enginePath(onnxPath), engine(nullptr), context(nullptr) {
 
+    // Loads the engine file if present, otherwise makes an engine using the input .onnx file
     std::string saveFileName = "tl_detect.engine";
     if(!loadEngine(saveFileName.c_str())){
 
@@ -105,14 +110,14 @@ TrafficLights::TrafficLights(const std::string& onnxPath)
 		    static_cast<int32_t>(ILogger::Severity::kWARNING));
 
     	for (int32_t i = 0; i < parser->getNbErrors(); ++i){
-		std::cout << parser->getError(i)->desc() << std::endl;
+		    std::cout << parser->getError(i)->desc() << std::endl;
     	}
 
     	// Builder config
     	IBuilderConfig* config = builder->createBuilderConfig();
     	config->setMemoryPoolLimit(MemoryPoolType::kWORKSPACE, 400U << 20);
-    	config->setMemoryPoolLimit(MemoryPoolType::kTACTIC_SHARED_MEMORY, 64U << 10);
-        config->setFlag(nvinfer1::BuilderFlag::kFP16);
+    	config->setMemoryPoolLimit(MemoryPoolType::kTACTIC_SHARED_MEMORY, 64U << 10);   
+        config->setFlag(nvinfer1::BuilderFlag::kFP16);  // Quantize to fp16
 
     	// Build deserialized engine
     	IHostMemory* serializedModel = builder->buildSerializedNetwork(*network, *config);
@@ -122,7 +127,7 @@ TrafficLights::TrafficLights(const std::string& onnxPath)
     	delete config;
     	delete builder;
 
-    	// Runtime
+    	// Instantiate Runtime, Engine and Context for usage
     	IRuntime* runtime = createInferRuntime(gLogger);
     	if (!runtime) {
         	std::cerr << "Error: Failed to create TensorRT runtime" << std::endl;
@@ -147,6 +152,7 @@ TrafficLights::TrafficLights(const std::string& onnxPath)
 	}
     cudaStreamCreate(&stream);
 
+    // Collect the input and output tensor names for reference later
     for (int i = 0; i < engine->getNbIOTensors(); ++i) {
         const char* name = engine->getIOTensorName(i);
         if (engine->getTensorIOMode(name) == TensorIOMode::kINPUT && !input_tensor_name_) {
@@ -162,6 +168,7 @@ TrafficLights::TrafficLights(const std::string& onnxPath)
         cerr << "ERROR: Failed to find input/output tensor names." << endl; return;
     }
 
+    // Get the dimensions of the input for correct matrix sizing
     Dims d = engine->getTensorShape(input_tensor_name_);
     printf("Input h: %d Input w: %d\n", d.d[2], d.d[3]);
 
@@ -192,15 +199,19 @@ size_t TrafficLights::calculateSizeFromDims(const Dims& dims) {
 }
 
 void TrafficLights::preprocess(const Mat& frame, std::vector<float>& cpu_input_buffer, int input_w, int input_h) {
+    
+    // Standard YOLO preprocessing steps
     Mat resized, rgb;
     resize(frame, resized, Size(input_w, input_h));
     cvtColor(resized, rgb, COLOR_BGR2RGB);
     rgb.convertTo(rgb, CV_32F, 1.0 / 255.0);
 
+    // Allocate memory for matrix
     cpu_input_buffer.resize(3 * input_h * input_w);
     vector<Mat> channels(3);
     split(rgb, channels);
 
+    // Copy over
     float* ptr = cpu_input_buffer.data();
     for (int c = 0; c < 3; ++c) {
         memcpy(ptr, channels[c].data, input_h * input_w * sizeof(float));
@@ -210,35 +221,47 @@ void TrafficLights::preprocess(const Mat& frame, std::vector<float>& cpu_input_b
 
 std::vector<cv::Rect> TrafficLights::detect(const Mat& frame) {
 
+    // I/O buffers
     vector<float> input;
     vector<float> output;
     vector<cv::Rect> detections;
     float conf_threshold = 0.3;
 
+    // Preprocess
     preprocess(frame, input, network_input_w_, network_input_h_);
     
+    // Set input shape and get tensor dimensions
     context->setInputShape(input_tensor_name_, Dims4{1, 3, network_input_h_, network_input_w_});
     Dims in_dims = context->getTensorShape(input_tensor_name_);
     Dims output_dims = context->getTensorShape(output_tensor_name_);
 
+    // Calculate buffer sizes
     size_t in_size = calculateSizeFromDims(in_dims) * sizeof(float);
     size_t out_size = calculateSizeFromDims(output_dims) * sizeof(float);
-
     output.resize(out_size / sizeof(float));
 
+    // Allocate GPU
     void* d_in = nullptr; void* d_out = nullptr;
     CHECK(cudaMalloc(&d_in, in_size));
     CHECK(cudaMalloc(&d_out, out_size));
+
+    // Copy data over to GPU
     CHECK(cudaMemcpyAsync(d_in, input.data(), in_size, cudaMemcpyHostToDevice, stream));
 
+    // Set I/O tensor addresses and run inference
     context->setTensorAddress(input_tensor_name_, d_in);
     context->setTensorAddress(output_tensor_name_, d_out);
     context->enqueueV3(stream);
+
+    // Copy data back to CPU
     CHECK(cudaMemcpyAsync(output.data(), d_out, out_size, cudaMemcpyDeviceToHost, stream));
     cudaStreamSynchronize(stream);
+
+    // Free GPU memory
     cudaFree(d_in);
     cudaFree(d_out);
 
+    
     if (!output.empty()){
         int count = 0;
         const int props = 6;
@@ -251,13 +274,8 @@ std::vector<cv::Rect> TrafficLights::detect(const Mat& frame) {
             float confidence = det[4];
             if (confidence < 0.5f) continue;
 
-            // if (valid < 5) {
-            //     std::cout << "[DEBUG] TL Detection " << i << " - Conf: " << confidence
-            //                 << ", Box: [" << det[0] << ", " << det[1] << ", " << det[2] << ", " << det[3] << "]" << std::endl;
-            // }
             valid++;
         }
-       //std::cout << "[DEBUG] TL Valid detections above threshold: " << valid << std::endl;
     
         float scale_x = frame.cols / static_cast<float>(network_input_w_);
         float scale_y = frame.rows / static_cast<float>(network_input_h_);

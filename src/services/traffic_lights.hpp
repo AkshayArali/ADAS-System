@@ -1,3 +1,5 @@
+// Lucas Butler
+
 #pragma once
 
 #include <string>

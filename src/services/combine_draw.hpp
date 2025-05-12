@@ -1,3 +1,5 @@
+// Lucas Butler
+
 #ifndef DRAW_FRAME_HPP
 #define DRAW_FRAME_HPP
 
@@ -22,10 +24,10 @@ struct DrawFrameArgs {
     std::string windowName;
     std::atomic<uint8_t>* frameReadyFlag;
     std::atomic<uint8_t>* processingDoneFlag;
-    uint8_t activeBit;
-    int numServices;
-    // annotations
+    uint8_t activeBit;                              // Unique Identifier
+    int numServices;                                // How many services are pulling frames from the buffer?
     std::atomic<bool>* stopFlag;
+    // annotations
     std::vector<Rect>* trafficLights;
     std::vector<Rect>* people;
     std::vector<Rect>* cars;
@@ -55,7 +57,6 @@ void* DrawFrameThread(void* arg) {
     const int fpsSampleSize = 30;
     std::vector<double> fpsHistory;
 
-    
     fpsHistory.reserve(fpsSampleSize); 
     auto lastTime = std::chrono::high_resolution_clock::now();
     while (!stopFlag->load()) {

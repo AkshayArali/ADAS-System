@@ -1,3 +1,5 @@
+// Himanshu Singh Rao
+
 #include "people_detect.hpp"
 
 #include <iostream>

@@ -1,3 +1,5 @@
+// Taiga Odonnel
+
 #ifndef CAR_DETECTOR_HPP
 #define CAR_DETECTOR_HPP
 

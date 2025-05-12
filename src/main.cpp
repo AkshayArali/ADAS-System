@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
     SimplePeopleDetector peopleDetector("./services/people_detect.onnx");
     CarDetector carsDetector("./cars.xml");
 	      
+
+    // Read Frame Service Initialization
     FrameReaderArgs frameReaderArgs;
     frameReaderArgs.frameBuffer = &frameBuffer;
 
@@ -58,56 +60,56 @@ int main(int argc, char** argv) {
 	}
 
     frameReaderArgs.frameReadyFlag = &uFrameReadyFlag;
-    frameReaderArgs.numServices = 5;     // 4                        // CRITICAL: needs to be # of annotation services + 1 draw service
+    frameReaderArgs.numServices = 5;      // CRITICAL: needs to be # of annotation services + 1 draw service
     frameReaderArgs.stopFlag = &stopFlag;
 
     pthread_t frameReaderThreadID;
     pthread_create(&frameReaderThreadID, nullptr, frameReaderThread, &frameReaderArgs);
     setThreadAffinity(frameReaderThreadID, 0); 
 
-    // Traffic lights service
+    // Traffic lights service Initialization
     serviceWrapperArgs<Rect> trafficLightsArgs;
     trafficLightsArgs.processFunction = [&trafficLights](cv::Mat& frame) { return trafficLights.detect(frame); };    
     trafficLightsArgs.frameBuffer = &frameBuffer;
     trafficLightsArgs.outputStore = &vTrafficLightsAnnotations;
     trafficLightsArgs.frameReadyFlag = &uFrameReadyFlag;
     trafficLightsArgs.processingDoneFlag = &uProcessingDoneFlag;
-    trafficLightsArgs.activeBit = 0x01;                     // Need to be unique bit for each service   
+    trafficLightsArgs.activeBit = 0x01;           // CRITICAL: Needs to be a unique bit for each service & farthest left of all annotation services   
     trafficLightsArgs.stopFlag = &stopFlag;
 
     pthread_t trafficLightsThreadID;
     pthread_create(&trafficLightsThreadID, nullptr, ServiceWrapperThread<Rect>, &trafficLightsArgs);
     setThreadAffinity(trafficLightsThreadID, 1); 
 
-    // // Car detection service
+    // Car detection service Initialization
     serviceWrapperArgs<cv::Rect> carDetectionArgs;
     carDetectionArgs.processFunction = [&carsDetector](cv::Mat& frame) { return carsDetector.detectCars(frame); };
     carDetectionArgs.frameBuffer = &frameBuffer;
     carDetectionArgs.outputStore = &vCarAnnotations;
     carDetectionArgs.frameReadyFlag = &uFrameReadyFlag;
     carDetectionArgs.processingDoneFlag = &uProcessingDoneFlag;
-    carDetectionArgs.activeBit = 0x02;                          // Need to be unique bit for each service
+    carDetectionArgs.activeBit = 0x02;            // CRITICAL: Needs to be a unique bit for each service & farthest left of all annotation services
     carDetectionArgs.stopFlag = &stopFlag;
 
     pthread_t carDetectionThreadID;
     pthread_create(&carDetectionThreadID, nullptr, ServiceWrapperThread<cv::Rect>, &carDetectionArgs);
     setThreadAffinity(carDetectionThreadID, 2);
 
-    // // // Pedestrains detection service
+    // Pedestrains detection service Initialization
     serviceWrapperArgs<cv::Rect> peopleDetectionArgs;
     peopleDetectionArgs.processFunction = [&peopleDetector](cv::Mat& frame) { return peopleDetector.detect(frame); };
     peopleDetectionArgs.frameBuffer = &frameBuffer;
     peopleDetectionArgs.outputStore = &vPeopleAnnotations;
     peopleDetectionArgs.frameReadyFlag = &uFrameReadyFlag;
     peopleDetectionArgs.processingDoneFlag = &uProcessingDoneFlag;
-    peopleDetectionArgs.activeBit = 0x04;                // Need to be unique bit for each service
+    peopleDetectionArgs.activeBit = 0x04;         // CRITICAL: Needs to be a unique bit for each service & farthest left of all annotation services
     peopleDetectionArgs.stopFlag = &stopFlag;
 
     pthread_t peopleDetectionThreadID;
     pthread_create(&peopleDetectionThreadID, nullptr, ServiceWrapperThread<cv::Rect>, &peopleDetectionArgs);
     setThreadAffinity(peopleDetectionThreadID, 3);
 
-    // Lane lines service
+    // Lane lines service Initialization
     serviceWrapperArgs<Vec4i> laneLinesArgs;
     laneLinesArgs.processFunction = &laneDetection;
     laneLinesArgs.frameBuffer = &frameBuffer;
@@ -122,13 +124,13 @@ int main(int argc, char** argv) {
     setThreadAffinity(laneLinesDetectionThreadID, 4);
 
 
-  // Draw frame service
+    // Draw frame service Initialization
     DrawFrameArgs drawFrameArgs;
     drawFrameArgs.frameBuffer = &frameBuffer;
     drawFrameArgs.windowName = "Annotated Frame";
     drawFrameArgs.frameReadyFlag = &uFrameReadyFlag;
     drawFrameArgs.processingDoneFlag = &uProcessingDoneFlag;
-    drawFrameArgs.activeBit = 0x10;   
+    drawFrameArgs.activeBit = 0x10;        // CRITICAL: Needs to be a unique bit for each service & farthest left of all annotation services
     drawFrameArgs.numServices = 4;         // CRITICAL: needs to be # of annotation services
     drawFrameArgs.stopFlag = &stopFlag;
     drawFrameArgs.trafficLights = &vTrafficLightsAnnotations;
@@ -138,11 +140,10 @@ int main(int argc, char** argv) {
 
     pthread_t drawFrameThreadID;
     pthread_create(&drawFrameThreadID, nullptr, DrawFrameThread, &drawFrameArgs);
-    setThreadAffinity(drawFrameThreadID, 5); // Bind to core 0
+    setThreadAffinity(drawFrameThreadID, 5); 
 
     while (true) {
         continue;
-
     }
 
     // Wait for the frame reader thread to finish (in a real application, you'd handle this differently)
