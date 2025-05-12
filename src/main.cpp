@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
     TrafficLights trafficLights("./services/tl_detect.onnx");
     SimplePeopleDetector peopleDetector("./services/people_detect.onnx");
     CarDetector carsDetector("./cars.xml");
+//    CarDetector carsDetector("./carLBP.xml"); //lbp version
 	      
 
     // Read Frame Service Initialization
@@ -150,6 +151,8 @@ int main(int argc, char** argv) {
     pthread_join(frameReaderThreadID, nullptr);
     pthread_join(trafficLightsThreadID, nullptr);
     pthread_join(carDetectionThreadID, nullptr);
+    pthread_join(laneLinesDetectionThreadID, nullptr);
+    pthread_join(peopleDetectionThreadID, nullptr);
     pthread_join(drawFrameThreadID, nullptr);
 
     return 0;

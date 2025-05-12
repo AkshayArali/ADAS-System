@@ -21,7 +21,8 @@ vector<Rect> CarDetector::detectCars(const Mat& Frame) {
     int frameWidth = Frame.cols;
 
     // Define Region of Interest: exclude top 1/4 and bottom 1/5
-    Rect roi(0, frameHeight / 4, frameWidth, frameHeight - (frameHeight / 5) - (frameHeight / 4));
+    //Rect roi(0, frameHeight / 4, frameWidth, frameHeight - (frameHeight / 5) - (frameHeight / 4));
+    Rect roi(0, frameHeight /2, frameWidth, frameHeight/2);
     Mat roiFrame = Frame(roi);
 
     Mat grayFrame(roiFrame.size(), CV_8UC1);
@@ -32,10 +33,10 @@ vector<Rect> CarDetector::detectCars(const Mat& Frame) {
     }
     //cvtColor(roiFrame, grayFrame, COLOR_BGR2GRAY);
     
-    #pragma omp parallel for
-    for (int i = 0; i < grayFrame.rows; i++) {
-        equalizeHist(grayFrame.row(i), grayFrame.row(i));
-    }
+    // #pragma omp parallel for
+    // for (int i = 0; i < grayFrame.rows; i++) {
+    //     equalizeHist(grayFrame.row(i), grayFrame.row(i));
+    // }
     //equalizeHist(grayFrame, grayFrame);
 
     // resize the frame
@@ -46,9 +47,9 @@ vector<Rect> CarDetector::detectCars(const Mat& Frame) {
     carCascade.detectMultiScale(
         smallFrame,
         cars,
-        1.25,              // Scale factor
-        2,                 // Increase minNeighbors to reduce false positives
-        0,
+        1.15,              // Scale factor, 1.25
+        3,
+	0,	// Increase minNeighbors to reduce false positives
         Size(20, 20)       // Minimum size
     );
 
