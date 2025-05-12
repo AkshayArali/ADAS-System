@@ -54,6 +54,8 @@ void* DrawFrameThread(void* arg) {
     double avgFps = 0.0;
     const int fpsSampleSize = 30;
     std::vector<double> fpsHistory;
+
+    
     fpsHistory.reserve(fpsSampleSize); 
     auto lastTime = std::chrono::high_resolution_clock::now();
     while (!stopFlag->load()) {

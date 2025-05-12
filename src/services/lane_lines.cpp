@@ -37,13 +37,25 @@ std::vector<cv::Vec4i> laneDetection(Mat& frame) {
 
     // 4) Separate left/right by slope
     vector<Vec4i> leftL, rightL;
-    for (auto &l : lines) {
-        float dx = float(l[2]-l[0]), dy = float(l[3]-l[1]);
-        float slope = dy/(dx+1e-5f);
-        if (fabs(slope) < 0.5f) continue;
-        // use x1 to decide side
-        if (slope < 0 && l[0] < w/2) leftL.push_back(l);
-        else if (slope > 0 && l[0] > w/2) rightL.push_back(l);
+    #pragma omp parallel
+    {
+        vector<Vec4i> localLeft, localRight;
+        #pragma omp for nowait
+        for (int i = 0; i < lines.size(); ++i) {
+            Vec4i l = lines[i];
+            float dx = float(l[2] - l[0]), dy = float(l[3] - l[1]);
+            float slope = dy / (dx + 1e-5f);
+            if (fabs(slope) < 0.5f) continue;
+            if (slope < 0 && l[0] < w / 2)
+                localLeft.push_back(l);
+            else if (slope > 0 && l[0] > w / 2)
+                localRight.push_back(l);
+        }
+        #pragma omp critical
+        {
+            leftL.insert(leftL.end(), localLeft.begin(), localLeft.end());
+            rightL.insert(rightL.end(), localRight.begin(), localRight.end());
+        }
     }
 
     // 5) Fit one line each side (or default)
@@ -51,10 +63,16 @@ std::vector<cv::Vec4i> laneDetection(Mat& frame) {
     auto fitSide = [&](vector<Vec4i>& side, Point2f& bot, Point2f& top, float yTopFrac) {
         if (!side.empty()) {
             vector<Point2f> pts;
-            for (auto &l: side) {
-                pts.emplace_back(l[0], l[1]);
-                pts.emplace_back(l[2], l[3]);
+
+            #pragma omp parallel for
+            for (int i = 0; i < side.size(); ++i) {
+                #pragma omp critical
+                {
+                    pts.emplace_back(side[i][0], side[i][1]);
+                    pts.emplace_back(side[i][2], side[i][3]);
+                }
             }
+            
             Vec4f f; 
             fitLine(pts, f, DIST_L2, 0, 0.01, 0.01);
             float vx=f[0], vy=f[1], x0=f[2], y0=f[3];
