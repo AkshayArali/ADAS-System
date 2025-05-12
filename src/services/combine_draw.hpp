@@ -12,6 +12,7 @@
 #include <thread>
 #include <chrono>
 #include <traffic_lights.hpp>
+#include <lane_lines.hpp>
 
 // Thread function for reading frames
 void* drawFrameThread(void* arg);
@@ -28,6 +29,7 @@ struct DrawFrameArgs {
     std::vector<Rect>* trafficLights;
     std::vector<Rect>* people;
     std::vector<Rect>* cars;
+    std::vector<Vec4i>* laneLinePoints;
 };
 
 void* DrawFrameThread(void* arg) {
@@ -88,6 +90,13 @@ void* DrawFrameThread(void* arg) {
             cv::rectangle(frame, rect, cv::Scalar(0, 0, 255), 2); // red boxes, thickness=2
         }
 
+        // Drawing
+        for (int i=0; i < 2; i++){
+            cv::Vec4i line = (*args->laneLinePoints)[i];
+            cv::Point p1(line[0], line[1]);
+            cv::Point p2(line[2], line[3]);
+            cv::line(frame, p1, p2, cv::Scalar(255, 255, 0), 3);
+        }
         ////////////////////////// End Annotations ///////////////////////////
 
         // Flip the processingDoneFlag to 0

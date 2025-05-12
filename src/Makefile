@@ -35,12 +35,6 @@ TRAFFIC_LIGHTS_OBJ = $(BUILD_DIR)/traffic_lights.o
 $(TRAFFIC_LIGHTS_OBJ): $(TRAFFIC_LIGHTS_SRC) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Build the main file
-MAIN_SRC = main.cpp
-MAIN_OBJ = $(BUILD_DIR)/main.o
-$(MAIN_OBJ): $(MAIN_SRC) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
 # Build people detector
 PEOPLE_SRC = $(SERVICES_DIR)/people_detect.cpp
 PEOPLE_OBJ = $(BUILD_DIR)/people_detect.o
@@ -53,8 +47,20 @@ CAR_OBJ = $(BUILD_DIR)/carDet.o
 $(CAR_OBJ): $(CAR_SRC) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# Build lane lines
+LANE_LINES_SRC = $(SERVICES_DIR)/lane_lines.cpp
+LANE_LINES_OBJ = $(BUILD_DIR)/lane_lines.o
+$(LANE_LINES_OBJ): $(LANE_LINES_SRC) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Build the main file
+MAIN_SRC = main.cpp
+MAIN_OBJ = $(BUILD_DIR)/main.o
+$(MAIN_OBJ): $(MAIN_SRC) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 # Build the executable
-$(SRC_DIR)/adas_app: $(MAIN_OBJ) $(TRAFFIC_LIGHTS_OBJ) $(CAR_OBJ) $(PEOPLE_OBJ)
+$(SRC_DIR)/adas_app: $(MAIN_OBJ) $(TRAFFIC_LIGHTS_OBJ) $(CAR_OBJ) $(PEOPLE_OBJ) $(LANE_LINES_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Create build directory if it doesn't exist
