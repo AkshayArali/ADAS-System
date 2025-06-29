@@ -23,7 +23,7 @@ External video of the system was captured via cellphone since we maxed out the c
 - Light Blue - Lane Lines
 - Orange - Cars
 
-![demo_video](resources/ada-gif.gif)
+![demo_video](resources/adas-gif.gif)
 
 ## Synchronization System
 At a high level, the system has three main services:
