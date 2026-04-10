@@ -2,7 +2,7 @@
 This project implements an ADAS system with four detection services and 2 system services. These services include:  
 - Read frame - *Lucas* (me) - Responsible for reading new frames from the input video/camera and writing them to a global buffer.
 - Draw frame - *Lucas* (me) - Responsible for taking all annations made by each service, drawing them on the frame, and writing the frame to the GUI.
-- Traffic light detection (YOLO model) – *Lucas* (me)
+- Traffic light detection (YOLO model) – *Lucas* 
 - Pedestrian detection (YOLO model) – *Himanshu*  
 - Lane line detection (first principles) – *Akshay*  
 - Car detection (first principles) – *Taiga*  
@@ -52,3 +52,4 @@ Run using the camera:
 ```
 ./adas_app
 ```
+
